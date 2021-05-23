@@ -33,11 +33,11 @@ void ArduinoReader::onFatalError() {
 	}
 }
 
-int ArduinoReader::parseInt(unsigned char* buffer) {
+unsigned int ArduinoReader::parseInt(unsigned char* buffer) {
 	return ((unsigned int)buffer[0] << 24) | ((unsigned int)buffer[1] << 16) | ((unsigned int)buffer[2] << 8) | buffer[3];
 }
 
-ArduinoReader::ArduinoReader(mainWindow* window, threadSafeScreen* tss, bool resetFlag, bool debug, std::string comPort) : window{ window }, tss{ tss }, resetFlag{ resetFlag }, debugDisabled{ !debug }, comPort{ comPort } {
+ArduinoReader::ArduinoReader(mainWindow* window, threadSafeScreen* tss, bool resetFlag, bool debug, std::string comPort, long baud) : window{ window }, tss{ tss }, resetFlag{ resetFlag }, debugDisabled{ !debug }, comPort{ comPort }, baud{ baud } {
 	readerThread = std::thread(&ArduinoReader::startReal, this);
 }
 
@@ -83,7 +83,7 @@ bool ArduinoReader::readHeader() {
 		yRes = parseInt(buffer + 4);
 		std::cout << "X resolution: " << xRes << "\nY resolution: " << yRes << std::endl;
 		tss->setImage(wxImage{ xRes,yRes,true });
-		window->sendNeedsRepaint();
+		window->updateNextFrame = true;
 	} RFERROR
 	return true;
 }
@@ -98,7 +98,7 @@ bool ArduinoReader::mainLoop() {
 			unsigned char* data = (unsigned char*)malloc((size_t)xRes * yRes * 3);//malloc, not new, because according to https://docs.wxwidgets.org/trunk/classwx_image.html#a2c97634b43bdd143f34418fb1f98a690
 			if (ReadFile(serialHandle, data, (unsigned long)xRes * yRes * 3, &bytesRead, NULL)) {
 				tss->setImage(wxImage{ xRes,yRes,data,false });
-				window->sendNeedsRepaint();
+				window->updateNextFrame = true;
 				DEBUGSTREAM << "Received updated buffer\n";
 			} else {
 				free(data);
@@ -113,7 +113,7 @@ bool ArduinoReader::mainLoop() {
 				int x = parseInt(data);
 				int y = parseInt(data + 4);
 				tss->setPixel(x, y, data[8], data[9], data[10]);
-				window->sendNeedsRepaint();
+				window->updateNextFrame = true;
 				DEBUGSTREAM << "Set pixel " << x << "," << y << " to [" << (int)data[8] << "," << (int)data[9] << "," << (int)data[10] << "]\n";
 			} RFERROR
 			break;
@@ -126,7 +126,7 @@ bool ArduinoReader::mainLoop() {
 				int x2 = parseInt(data + 8);
 				int y2 = parseInt(data + 12);
 				tss->drawLine(x1, y1, x2, y2, data[16], data[17], data[18]);
-				window->sendNeedsRepaint();
+				window->updateNextFrame = true;
 				DEBUGSTREAM << "Drew line from " << x1 << "," << y1 << " to " << x2 << "," << y2 << " with color [" << (int)data[16] << "," << (int)data[17] << "," << (int)data[18] << "]\n";
 			} RFERROR
 			break;
@@ -141,7 +141,7 @@ bool ArduinoReader::mainLoop() {
 				int x3 = parseInt(data + 16);
 				int y3 = parseInt(data + 20);
 				tss->drawTriangle(x1, y1, x2, y2, x3, y3, data[24], data[25], data[26]);
-				window->sendNeedsRepaint();
+				window->updateNextFrame = true;
 				DEBUGSTREAM << "Drew triangle with vertices [" << x1 << "," << y1 << "], [" << x2 << "," << y2 << "], [" << x3 << "," << y3 << "] and color [" << (int)data[24] << "," << (int)data[25] << "," << (int)data[26] << "]\n";
 			} RFERROR
 			break;
@@ -154,7 +154,7 @@ bool ArduinoReader::mainLoop() {
 				int width = parseInt(data + 8);
 				int height = parseInt(data + 12);
 				tss->drawRectangle(x, y, width, height, data[16], data[17], data[18]);
-				window->sendNeedsRepaint();
+				window->updateNextFrame = true;
 				DEBUGSTREAM << "Drew rectangle with TL corner [" << x << "," << y << "], width " << width << ", height " << height << ", and color [" << (int)data[16] << "," << (int)data[17] << (int)data[18] << "]\n";
 			} RFERROR
 			break;
@@ -173,7 +173,7 @@ bool ArduinoReader::mainLoop() {
 							ptr += 8;
 						}
 						tss->drawPolygon(verticesArray, ptr[0], ptr[1], ptr[2]);
-						window->sendNeedsRepaint();
+						window->updateNextFrame = true;
 						DEBUGSTREAM << "Drew polygon with vertices ";
 						for (wxPoint p : verticesArray) {
 							DEBUGSTREAM << "[" << p.x << "," << p.y << "], ";
@@ -197,7 +197,7 @@ bool ArduinoReader::mainLoop() {
 				int width = parseInt(data + 8);
 				int height = parseInt(data + 12);
 				tss->drawEllipse(x, y, width, height, data[16], data[17], data[18]);
-				window->sendNeedsRepaint();
+				window->updateNextFrame = true;
 				DEBUGSTREAM << "Drew ellipse with center [" << x << "," << y << "], width " << width << ", height " << height << ", and color [" << (int)data[16] << "," << (int)data[17] << "," << (int)data[18] << "]\n";
 			} RFERROR
 			break;
@@ -223,9 +223,9 @@ void ArduinoReader::startReal() {
 }
 
 bool ArduinoReader::initializeSerial() {
+	std::cout << "Opening port " << comPort << " with baud rate " << baud << std::endl;
 	comPort = "\\\\.\\" + comPort;
 	serialHandle = CreateFileA(comPort.c_str(), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-	DCB dcb;
 
 	if (serialHandle == INVALID_HANDLE_VALUE) {
 		onFatalError("CreateFileA", GetLastError());
@@ -238,7 +238,7 @@ bool ArduinoReader::initializeSerial() {
 		return false;
 	}
 
-	dcb.BaudRate = 9600;
+	dcb.BaudRate = baud;
 	dcb.ByteSize = 8;
 	dcb.Parity = NOPARITY;
 	dcb.StopBits = ONESTOPBIT;
@@ -249,8 +249,6 @@ bool ArduinoReader::initializeSerial() {
 		onFatalError("SetCommState", GetLastError());
 		return false;
 	}
-
-	std::cout << "Opened port " << comPort << std::endl;
 
 	if (resetFlag) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(1)); //sleep for 1 millisecond, to give RTS time to register

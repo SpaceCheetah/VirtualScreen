@@ -18,6 +18,8 @@ After that, it's just a very basic packet system, with the first byte of each pa
 Command usage:
 VirtualScreen [/r] [/d] [/h] port
   port must be a COM port, e.g. COM3
-  /r, --reset   Reset arduino before connecting
-  /d, --debug   Enable extra debug messages
-  /h, --help    Display this message
+  /b, --baud=<num>              Baud rate (9600 default)
+  /f, --framerate=<double>      Frame rate (60 default)
+  /r, --reset                   Reset arduino before connecting
+  /d, --debug                   Enable extra debug messages
+  /h, --help                    Display this message

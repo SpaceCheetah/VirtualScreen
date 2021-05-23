@@ -3,24 +3,22 @@
 #include "wx/wx.h"
 #include "threadSafeScreen.h"
 
-//constexpr auto NAME_ID = 2001;
-
 constexpr auto WINDOW_ID = 2001;
-
-wxDECLARE_EVENT(NEEDS_REPAINT, wxCommandEvent);
+constexpr auto TIMER_ID = 2002;
 
 class mainWindow : public wxFrame {
-	//wxButton* name = nullptr;
+	wxTimer* frameTimer = nullptr;
 public:
-	mainWindow(wxSize size, threadSafeScreen* tss);
-	void sendNeedsRepaint();
+	mainWindow(mainWindow const&) = delete;
+	mainWindow& operator= (mainWindow const&) = delete;
+	std::atomic_bool updateNextFrame = false;
+	mainWindow(wxSize size, threadSafeScreen* tss, int delay);
 	void doRepaint();
 	threadSafeScreen* tss;
 	wxBitmap buffer;
 	wxWindow* renderSurface;
-	//<return type> name(wxEventName& evt);
 	void onPaint(wxPaintEvent& event);
 	void onSize(wxSizeEvent& event);
-	void onNeedsRepaint(wxCommandEvent& event);
+	void onFrame(wxTimerEvent& event);
 	wxDECLARE_EVENT_TABLE();
 };

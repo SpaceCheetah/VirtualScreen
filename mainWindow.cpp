@@ -2,17 +2,17 @@
 #include <string>
 #include <wx/choicdlg.h>
 
-wxDEFINE_EVENT(NEEDS_REPAINT, wxCommandEvent);
-
 wxBEGIN_EVENT_TABLE(mainWindow, wxFrame)
 	EVT_SIZE(mainWindow::onSize)
-	EVT_COMMAND(WINDOW_ID, NEEDS_REPAINT, mainWindow::onNeedsRepaint)
+	EVT_TIMER(TIMER_ID, mainWindow::onFrame)
 wxEND_EVENT_TABLE()
 
-mainWindow::mainWindow(wxSize size, threadSafeScreen* tss) : wxFrame(nullptr, WINDOW_ID, "VirtualScreen", wxPoint(200, 200), size), tss(tss) {
+mainWindow::mainWindow(wxSize size, threadSafeScreen* tss, int delay) : wxFrame(nullptr, WINDOW_ID, "VirtualScreen", wxPoint(200, 200), size), tss(tss) {
 	renderSurface = new wxWindow(this, wxID_ANY, wxDefaultPosition, size);
 	renderSurface->SetBackgroundStyle(wxBG_STYLE_PAINT);
 	renderSurface->Bind(wxEVT_PAINT, &mainWindow::onPaint, this);
+	frameTimer = new wxTimer(this, TIMER_ID);
+	frameTimer->Start(delay);
 }
 
 void mainWindow::onPaint(wxPaintEvent& event) {
@@ -41,12 +41,9 @@ void mainWindow::doRepaint() {
 	}
 }
 
-void mainWindow::onNeedsRepaint(wxCommandEvent& event) {
-	doRepaint();
-}
-
-void mainWindow::sendNeedsRepaint() {
-	wxCommandEvent* event = new wxCommandEvent(NEEDS_REPAINT, WINDOW_ID);
-	event->SetEventObject(this);
-	GetEventHandler()->QueueEvent(event);
+void mainWindow::onFrame(wxTimerEvent& event) {
+	if (updateNextFrame) {
+		updateNextFrame = false;
+		doRepaint();
+	}
 }

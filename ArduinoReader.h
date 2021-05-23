@@ -5,14 +5,14 @@
 
 class ArduinoReader {
 public:
-	ArduinoReader(mainWindow* window, threadSafeScreen* tss, bool resetFlag, bool debug, std::string comPort);
+	ArduinoReader(mainWindow* window, threadSafeScreen* tss, bool resetFlag, bool debug, std::string comPort, long baud);
 	~ArduinoReader();
 	ArduinoReader(ArduinoReader const&) = delete; //can't move or copy, as neither atomic types nor threads can be copied or moved
 	ArduinoReader& operator =(ArduinoReader const&) = delete;
 private:
 	void onFatalError(std::string function, unsigned long error);
 	void onFatalError();
-	int parseInt(unsigned char* buffer);
+	unsigned int parseInt(unsigned char* buffer);
 	bool waitForArduinoStart();
 	bool readHeader();
 	bool mainLoop();
@@ -20,6 +20,7 @@ private:
 	bool initializeSerial();
 	//pointers (owned)
 	HANDLE serialHandle;
+	DCB dcb;
 	//pointers (not owned)
 	mainWindow* window;
 	threadSafeScreen* tss;
@@ -30,5 +31,6 @@ private:
 	std::string comPort;
 	bool resetFlag, debugDisabled;
 	int xRes, yRes;
+	long baud;
 };
 
