@@ -16,7 +16,7 @@ After that, it's just a very basic packet system, with the first byte of each pa
 6: draw ellipse. 2 integers for top left corner, 2 integers for width,height, 3 bytes for rgb.
 
 Command usage:
-VirtualScreen [/r] [/d] [/h] port
+VirtualScreen [/b <num>] [/f <double>] [/r] [/d] [/h] port
   port must be a COM port, e.g. COM3
   /b, --baud=<num>              Baud rate (9600 default)
   /f, --framerate=<double>      Frame rate (60 default)
