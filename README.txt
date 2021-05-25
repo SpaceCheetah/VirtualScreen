@@ -14,6 +14,9 @@ After that, it's just a very basic packet system, with the first byte of each pa
 4: draw rectangle. 2 integers for top left corner, 2 integers for width,height, and 3 bytes for rgb
 5: draw polygon. 1 byte for number of vertices, 2 integers per vertex (x,y), 3 bytes for rgb
 6: draw ellipse. 2 integers for top left corner, 2 integers for width,height, 3 bytes for rgb.
+7: draw text. 2 integers for top left corner, 1 byte for text length, text length bytes, 3 bytes for rgb. Note that draw text uses a monospace version
+of the Minecraftia font with each character being 5x7 pixels, with a 1 pixel horizontal gap between each character. If a character would be drawn off the
+edge, or if the character is \n, it will instead be drawn on the next line.
 
 Command usage:
 VirtualScreen [/b <num>] [/f <double>] [/r] [/d] [/h] port

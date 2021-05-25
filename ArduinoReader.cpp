@@ -90,7 +90,7 @@ bool ArduinoReader::readHeader() {
 
 bool ArduinoReader::mainLoop() {
 	//get packet type
-	char buffer = '\0';
+	char buffer = 0;
 	unsigned long bytesRead = 0;
 	if (ReadFile(serialHandle, &buffer, 1, &bytesRead, NULL)) {
 		switch (buffer) {
@@ -160,7 +160,7 @@ bool ArduinoReader::mainLoop() {
 			break;
 		}
 		case 5: {//draw polygon
-			char buffer = '\0';
+			char buffer = 0;
 			if (ReadFile(serialHandle, &buffer, 1, &bytesRead, NULL)) {
 				int vertices = (int)buffer;
 				if (vertices > 2) {
@@ -199,6 +199,23 @@ bool ArduinoReader::mainLoop() {
 				tss->drawEllipse(x, y, width, height, data[16], data[17], data[18]);
 				window->updateNextFrame = true;
 				DEBUGSTREAM << "Drew ellipse with center [" << x << "," << y << "], width " << width << ", height " << height << ", and color [" << (int)data[16] << "," << (int)data[17] << "," << (int)data[18] << "]\n";
+			} RFERROR
+			break;
+		}
+		case 7: { //draw text
+			unsigned char buffer[9];
+			if (ReadFile(serialHandle, buffer, 9, &bytesRead, NULL)) {
+				int x = parseInt(buffer);
+				int y = parseInt(buffer + 4);
+				int chars = (int)buffer[8];
+				unsigned char* data = new unsigned char[chars + 3];
+				if (ReadFile(serialHandle, data, chars + 3, &bytesRead, NULL)) {
+					std::string text((char*) data, chars);
+					tss->drawText(x, y, text, data[chars], data[chars + 1], data[chars + 2]);
+					window->updateNextFrame = true;
+					DEBUGSTREAM << "Drew text with corner [" << x << "," << y << "], text \"" << text << "\", and color [" << (int)data[chars] << "," << (int)data[chars + 1] << "," << (int)data[chars + 2] << "]\n";
+				} RFERROR
+				delete data;
 			} RFERROR
 			break;
 		}

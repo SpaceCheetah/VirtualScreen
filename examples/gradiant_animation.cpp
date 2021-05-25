@@ -7,24 +7,28 @@ struct vertex {
     uint x,y;
 };
 
-void initScreen(uint xRes, uint yRes);
-void updateBuffer(ubyte* buffer);
-void setPixel(uint x, uint y, ubyte r, ubyte g, ubyte b);
-void drawLine(uint x1, uint y1, uint x2, uint y2, ubyte r, ubyte g, ubyte b);
-void drawTriangle(uint x1, uint y1, uint x2, uint y2, uint x3, uint y3, ubyte r, ubyte g, ubyte b);
-void drawRectangle(uint x, uint y, uint width, uint height, ubyte r, ubyte g, ubyte b);
-void drawPolygon(ubyte numVertices, vertex* vertices, ubyte r, ubyte g, ubyte b);
-void drawEllipse(uint x, uint y, uint width, uint height, ubyte r, ubyte g, ubyte b);
+namespace VirtualScreen {
+    void initScreen(uint xRes, uint yRes, uint baud = 9600);
+    void updateBuffer(ubyte* buffer);
+    void setPixel(uint x, uint y, ubyte r, ubyte g, ubyte b);
+    void drawLine(uint x1, uint y1, uint x2, uint y2, ubyte r, ubyte g, ubyte b);
+    void drawTriangle(uint x1, uint y1, uint x2, uint y2, uint x3, uint y3, ubyte r, ubyte g, ubyte b);
+    void drawRectangle(uint x, uint y, uint width, uint height, ubyte r, ubyte g, ubyte b);
+    void drawPolygon(ubyte numVertices, vertex* vertices, ubyte r, ubyte g, ubyte b);
+    void drawEllipse(uint x, uint y, uint width, uint height, ubyte r, ubyte g, ubyte b);
+    void drawText(uint x, uint y, const char* text, ubyte r, ubyte g, ubyte b);
+    void sendUInt(uint i);
+};
 
 void sendUInt(uint i);
 
-void setup() {
-    Serial.begin(9600);
-    Serial.print("VS START");
-    initScreen(50, 50);
+void setup() 
+{
+    VirtualScreen::initScreen(50, 50);
 }
 
-void loop() {
+void loop()
+{
     static ubyte r = 0;
     static ubyte g = 0;
     static ubyte b = 255;
@@ -68,17 +72,22 @@ void loop() {
     }
 }
 
-void initScreen(uint xRes, uint yRes) {
+void VirtualScreen::initScreen(uint xRes, uint yRes, uint baud)
+{
+    Serial.begin(baud);
+    Serial.print("VS START");
     sendUInt(xRes);
     sendUInt(yRes);
 }
 
-void updateBuffer(ubyte* buffer) {
-    Serial.write(0);
+void VirtualScreen::updateBuffer(ubyte* buffer)
+{
+    Serial.write(0);//update buffer start
     Serial.write(buffer, xRes * yRes * 3);
 }
 
-void setPixel(uint x, uint y, ubyte r, ubyte g, ubyte b) {
+void VirtualScreen::setPixel(uint x, uint y, ubyte r, ubyte g, ubyte b)
+{
     Serial.write(1);
     sendUInt(x);
     sendUInt(y);
@@ -87,8 +96,9 @@ void setPixel(uint x, uint y, ubyte r, ubyte g, ubyte b) {
     Serial.write(b);
 }
 
-void drawLine(uint x1, uint y1, uint x2, uint y2, ubyte r, ubyte g, ubyte b) {
-    Serial.write(2);//draw line start
+void VirtualScreen::drawLine(uint x1, uint y1, uint x2, uint y2, ubyte r, ubyte g, ubyte b)
+{
+    Serial.write(2);
     sendUInt(x1);
     sendUInt(y1);
     sendUInt(x2);
@@ -98,7 +108,8 @@ void drawLine(uint x1, uint y1, uint x2, uint y2, ubyte r, ubyte g, ubyte b) {
     Serial.write(b);
 }
 
-void drawTriangle(uint x1, uint y1, uint x2, uint y2, uint x3, uint y3, ubyte r, ubyte g, ubyte b) {
+void VirtualScreen::drawTriangle(uint x1, uint y1, uint x2, uint y2, uint x3, uint y3, ubyte r, ubyte g, ubyte b)
+{
     Serial.write(3);
     sendUInt(x1);
     sendUInt(y1);
@@ -111,7 +122,8 @@ void drawTriangle(uint x1, uint y1, uint x2, uint y2, uint x3, uint y3, ubyte r,
     Serial.write(b);
 }
 
-void drawRectangle(uint x, uint y, uint width, uint height, ubyte r, ubyte g, ubyte b) {
+void VirtualScreen::drawRectangle(uint x, uint y, uint width, uint height, ubyte r, ubyte g, ubyte b)
+{
     Serial.write(4);
     sendUInt(x);
     sendUInt(y);
@@ -122,7 +134,8 @@ void drawRectangle(uint x, uint y, uint width, uint height, ubyte r, ubyte g, ub
     Serial.write(b);
 }
 
-void drawPolygon(ubyte numVertices, vertex* vertices, ubyte r, ubyte g, ubyte b) {
+void VirtualScreen::drawPolygon(ubyte numVertices, vertex* vertices, ubyte r, ubyte g, ubyte b)
+{
     Serial.write(5);
     Serial.write(numVertices);
     for(ubyte i = 0; i < numVertices; i ++)
@@ -135,7 +148,8 @@ void drawPolygon(ubyte numVertices, vertex* vertices, ubyte r, ubyte g, ubyte b)
     Serial.write(b);
 }
 
-void drawEllipse(uint x, uint y, uint width, uint height, ubyte r, ubyte g, ubyte b) {
+void VirtualScreen::drawEllipse(uint x, uint y, uint width, uint height, ubyte r, ubyte g, ubyte b)
+{
     Serial.write(6);
     sendUInt(x);
     sendUInt(y);
@@ -146,7 +160,20 @@ void drawEllipse(uint x, uint y, uint width, uint height, ubyte r, ubyte g, ubyt
     Serial.write(b);
 }
 
-void sendUInt(uint i) {
+void VirtualScreen::drawText(uint x, uint y, const char* text, ubyte r, ubyte g, ubyte b)
+{
+    Serial.write(7);
+    sendUInt(x);
+    sendUInt(y);
+    Serial.write(strlen(text));
+    Serial.write(text);
+    Serial.write(r);
+    Serial.write(g);
+    Serial.write(b);
+}
+
+void VirtualScreen::sendUInt(uint i)
+{
     Serial.write((i >> 24) & 0xFF);
     Serial.write((i >> 16) & 0xFF);
     Serial.write((i >> 8) & 0xFF);

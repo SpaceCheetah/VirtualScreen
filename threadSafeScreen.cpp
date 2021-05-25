@@ -1,4 +1,5 @@
 #include "threadSafeScreen.h"
+#include "font.h"
 
 wxImage threadSafeScreen::getImage() {
 	wxCriticalSectionLocker locker(lock);
@@ -45,6 +46,38 @@ void threadSafeScreen::drawEllipse(int x, int y, int width, int height, unsigned
 	draw([=](wxDC& dc) {
 		dc.DrawEllipse (x, y, width, height);
 	}, r, g, b);
+}
+
+void threadSafeScreen::drawText(int x, int y, std::string text, unsigned char r, unsigned char g, unsigned char b) {
+	draw([=](wxDC& dc) {
+		int xCurrent = x;
+		int yCurrent = y;
+		for (char c : text) {
+			if (c == '\n' || (xCurrent + 5) > image.GetSize().GetX()) {
+				yCurrent += 8;
+				xCurrent = x;
+			}
+			if (drawChar(dc, c, xCurrent, yCurrent)) {
+				xCurrent += 6;
+			}
+		}
+	}, r, g, b);
+}
+
+bool threadSafeScreen::drawChar(wxDC& dc, char c, int x, int y) {
+	std::bitset<36> charBitmap = font::loadChar(c);
+	if (charBitmap.test(0)) { //for some reason 0 is rightmost bit
+		int i = 35;
+		for (int yl = 0; yl < 7; yl++) {
+			for (int xl = 0; xl < 5; xl++) {
+				if (charBitmap.test(i)) {
+					dc.DrawPoint(xl + x, yl + y);
+				}
+				i--;
+			}
+		}
+		return true;
+	} else return false;
 }
 
 void threadSafeScreen::draw(std::function<void(wxDC&)> callback, unsigned char r, unsigned char g, unsigned char b) {

@@ -18,5 +18,6 @@ public:
 	void drawRectangle(int x, int y, int width, int height, unsigned char r, unsigned char g, unsigned char b);
 	void drawPolygon(std::vector<wxPoint> vertices, unsigned char r, unsigned char g, unsigned char b);
 	void drawEllipse(int x, int y, int width, int height, unsigned char r, unsigned char g, unsigned char b);
+	void drawText(int x, int y, std::string text, unsigned char r, unsigned char g, unsigned char b);
 };
 
